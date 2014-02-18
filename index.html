@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>SQL Grader for Sabermetrics MOOC</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>SQL Grader</h1>
+        <p></p>
+
+        <p class="view"><a href="https://github.com/bu-ist/edx-sql-grader">View the Project on GitHub <small>bu-ist/edx-sql-grader</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/bu-ist/edx-sql-grader/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/bu-ist/edx-sql-grader/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/bu-ist/edx-sql-grader">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h3>
+            <h3>Approach</h3>
+            <p>For the SQL queries, we will not be developing any “front end” customizations to the edX platform; we will be relying solely upon the platform to provide an interface for managing questions and answers, and for handling all student interactions with the questions and answers.</p>
+
+            <p>Students are presented with a question and provided a text area to enter their answer in the form of a SQL query. </p>
+
+            <div><img src="media/ui.png"></div>
+
+            <p>When the student clicks or taps the button to submit his or her answer, edX submits the response to the XQueue interface, which queues the response until our custom grader processes it. </p>
+
+            <p>A canonical “answer” query for the question will also be submitted along with the student response. The canonical query is part of the question definition and is managed using the edX LMS, i.e. the course instructors enter the canonical query along with the question.</p> 
+
+            <p>When the grader processes a student response, it compares the result set of the canonical query to the result set of the query that the student submitted, i.e. it compares the result of the query that is known to generate the desired result to the result of the query that the student thinks will generate the desired result.</p>
+
+            <p>Initially, the grader will perform a simple, binary comparison of the two results. The student’s query will either generate a correct result, or it will not. Additional analysis may be added to the grader if time permits.</p>
+
+            <p>The grader then generates a response to be sent back to the edX platform. The response will contain:</p>
+
+            <ol>
+                <li> The “grade”, from 0 to 1. Initially, this will be either a 0 (result did not match expected) or a 1 (result did match expected)</li>
+                <li> A HTML table representing the output of the student’s query</li>
+                <li> A HTML table representing the desired output</li>
+            </ol>
+
+<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+
+<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+
+<h3>
+<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+
+<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/bu-ist">bu-ist</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
