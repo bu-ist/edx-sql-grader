@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>SQL Grader by bu-ist</title>
+    <title>SQL Grader for Sabermetrics MOOC</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -29,28 +29,29 @@
       </header>
       <section>
         <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+            <h3>Approach</h3>
+            <p>For the SQL queries, we will not be developing any “front end” customizations to the edX platform; we will be relying solely upon the platform to provide an interface for managing questions and answers, and for handling all student interactions with the questions and answers.</p>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+            <p>Students are presented with a question and provided a text area to enter their answer in the form of a SQL query. </p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+            <div><img src="media/ui.png"></div>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+            <p>When the student clicks or taps the button to submit his or her answer, edX submits the response to the XQueue interface, which queues the response until our custom grader processes it. </p>
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+            <p>A canonical “answer” query for the question will also be submitted along with the student response. The canonical query is part of the question definition and is managed using the edX LMS, i.e. the course instructors enter the canonical query along with the question.</p> 
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+            <p>When the grader processes a student response, it compares the result set of the canonical query to the result set of the query that the student submitted, i.e. it compares the result of the query that is known to generate the desired result to the result of the query that the student thinks will generate the desired result.</p>
 
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+            <p>Initially, the grader will perform a simple, binary comparison of the two results. The student’s query will either generate a correct result, or it will not. Additional analysis may be added to the grader if time permits.</p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+            <p>The grader then generates a response to be sent back to the edX platform. The response will contain:</p>
 
-<h3>
+            <ol>
+                <li> The “grade”, from 0 to 1. Initially, this will be either a 0 (result did not match expected) or a 1 (result did match expected)</li>
+                <li> A HTML table representing the output of the student’s query</li>
+                <li> A HTML table representing the desired output</li>
+            </ol>
+
 <a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
 
 <p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
