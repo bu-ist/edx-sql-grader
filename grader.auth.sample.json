@@ -1,0 +1,15 @@
+{
+    "DATABASE": {
+        "sqlite": {
+            "data_dir": "../data/sql"
+        }
+    },
+
+    "XQUEUE_INTERFACE": {
+        "queue_name": "sabermetrics",
+        "url": "http://preview.localhost:18040",
+        "username": "lms",
+        "password": "password",
+        "timeout": 10
+    }
+}
