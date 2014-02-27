@@ -1,43 +1,29 @@
 #!/usr/bin/env python
+import daemon
 import logging
-import time
+from pwd import getpwnam
+from grp import getgrnam
+import os
 
 import settings
+from graders import GraderDaemon
 
-from util import XQueueClient
-from graders import GraderManager
+if __name__ == "__main__":
 
+    output = file(settings.OUT_LOG, 'a')
 
-def start():
-    """ Poll xqueue listening for submissions """
-    try:
-        xqueue = XQueueClient(**settings.XQUEUE_INTERFACE)
+    context = daemon.DaemonContext(
+        detach_process=(not settings.DAEMON_DEBUG),
+        stdout=output,
+        stderr=output,
+        working_directory=os.path.dirname(os.path.abspath(__file__)),
+        uid=getpwnam(settings.DAEMON_USER).pw_uid,
+        gid=getgrnam(settings.DAEMON_GROUP).gr_gid,
+        umask=2,
+    )
 
-        while True:
-            submission = xqueue.get_submission()
-            if submission:
-                grader = GraderManager.create(submission)
-                if grader:
-                    reply = grader.grade(submission)
-                else:
-                    reply = {
-                        "score": 0,
-                        "correct": False,
-                        "msg": "<p>Could not grade submission. Please contact course staff.</p>"
-                    }
-                xqueue.put_result(submission, reply)
-
-            time.sleep(settings.POLL_INTERVAL)
-
-    except KeyboardInterrupt:
-        print ' KeyboardInterrupt received, Exiting...'
-
-
-if __name__ == '__main__':
-    try:
-        log_level = getattr(logging, settings.LOG_LEVEL)
-    except AttributeError:
-        log_level = logging.ERROR
-
-    logging.basicConfig(level=log_level)
-    start()
+    with context:
+        logging.basicConfig(level=settings.LOG_LEVEL,
+                            filename=settings.DAEMON_LOG,
+                            format=settings.LOG_FORMAT)
+        grader = GraderDaemon().start()

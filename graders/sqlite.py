@@ -1,17 +1,18 @@
+import logging
 import os
 import sqlite3
 
-import settings
-
 from .base import BaseGrader
 from .exceptions import InvalidQuery, InvalidGrader
+
+log = logging.getLogger(__file__)
 
 
 class SQLiteGrader(BaseGrader):
     """ External grader for SQL statements (SQLite Backend)"""
 
-    def __init__(self, db_name=None, *args, **kwargs):
-        db_path = settings.DATABASE['sqlite']['data_dir'] + "/" + db_name
+    def __init__(self, db_name, data_dir='', *args, **kwargs):
+        db_path = os.path.join(data_dir, db_name)
         if not os.path.exists(db_path):
             raise InvalidGrader("Database does not exist: {}".format(db_path))
         try:
