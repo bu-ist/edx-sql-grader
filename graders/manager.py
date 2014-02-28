@@ -2,7 +2,7 @@ import logging
 
 import settings
 
-from .sqlite import SQLiteGrader
+from .sql import SQLiteGrader, MySQLGrader
 from .exceptions import InvalidGrader
 
 log = logging.getLogger(__name__)
@@ -24,11 +24,13 @@ class GraderManager(object):
 
         if engine == 'sqlite':
             Grader = SQLiteGrader
+        elif engine == 'mysql':
+            Grader = MySQLGrader
         else:
             return False
 
         try:
-            grader = Grader(database, **config)
+            grader = Grader(db=database, **config)
         except InvalidGrader as e:
             log.critical("Could not create grader: %s", e)
             grader = False

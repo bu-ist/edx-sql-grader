@@ -2,6 +2,6 @@
 from .base import BaseGrader
 from .daemon import GraderDaemon
 from .manager import GraderManager
-from .sqlite import SQLiteGrader
+from .sql import SQLiteGrader, MySQLGrader
 
-__all__ = ["BaseGrader", "GraderDaemon", "GraderManager", "SQLiteGrader"]
+__all__ = ["BaseGrader", "GraderDaemon", "GraderManager", "SQLiteGrader", "MySQLGrader"]
