@@ -36,5 +36,5 @@ except AttributeError:
 with open(ENV_ROOT / CONFIG_PREFIX + "auth.json") as auth_file:
     AUTH_TOKENS = json.load(auth_file)
 
-DATABASE = AUTH_TOKENS['DATABASE']
+GRADER_CONFIG = AUTH_TOKENS['GRADER_CONFIG']
 XQUEUE_INTERFACE = AUTH_TOKENS['XQUEUE_INTERFACE']

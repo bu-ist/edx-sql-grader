@@ -13,18 +13,18 @@ class GraderManager(object):
 
     @staticmethod
     def create(submission):
-        engine = submission['grader_payload'].get('engine', 'sqlite')
+        grader_type = submission['grader_payload'].get('grader', 'sqlite')
         database = submission['grader_payload'].get('database', '')
 
-        if engine not in settings.DATABASE:
-            log.critical("Improperly configured database engine %s", engine)
+        if grader_type not in settings.GRADER_CONFIG:
+            log.critical("Improperly configured grader %s", grader_type)
             return False
 
-        config = settings.DATABASE[engine]
+        config = settings.GRADER_CONFIG[grader_type]
 
-        if engine == 'sqlite':
+        if grader_type == 'sqlite':
             Grader = SQLiteGrader
-        elif engine == 'mysql':
+        elif grader_type == 'mysql':
             Grader = MySQLGrader
         else:
             return False

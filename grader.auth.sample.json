@@ -1,5 +1,5 @@
 {
-    "DATABASE": {
+    "GRADER_CONFIG": {
         "sqlite": {
             "data_dir": "/edx/app/data/"
         }
