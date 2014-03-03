@@ -2,7 +2,7 @@ import logging
 
 import settings
 
-from .sql import SQLiteGrader, MySQLGrader
+from .grader import SQLiteGrader, MySQLGrader
 from .exceptions import InvalidGrader
 
 log = logging.getLogger(__name__)
