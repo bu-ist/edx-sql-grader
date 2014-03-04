@@ -38,8 +38,8 @@ class MySQLGrader(BaseGrader):
         Execute both the student and teacher responses, comparing
         results to determine grade.
         """
-        student_response = submission['student_response']
-        grader_payload = submission['grader_payload']
+        student_response = submission.get('student_response')
+        grader_payload = submission.get('grader_payload')
         response = {
             "correct": False,
             "score": 0,
@@ -58,43 +58,55 @@ class MySQLGrader(BaseGrader):
             """.format(query=student_response, error=str(e)).strip(' \t\n\r')
             return response
 
-        grader_answer = grader_payload['answer']
-        try:
-            grader_cols, grader_rows = self.execute_query(grader_answer)
-        except InvalidQuery as e:
-            response["msg"] = """
+        grader_answer = grader_payload.get('answer')
+        if grader_answer:
+            try:
+                grader_cols, grader_rows = self.execute_query(grader_answer)
+            except InvalidQuery as e:
+                response["msg"] = """
 <div class="error">
-<p><strong>Invalid grader query</strong>: <code>{query}</code></p>
-<p>Please report this issue to the course staff.</p>
-<h4>Error:</h4>
-<pre><code>{error}</code></pre>
+    <p><strong>Invalid grader query</strong>: <code>{query}</code></p>
+    <p>Please report this issue to the course staff.</p>
+    <h4>Error:</h4>
+    <pre><code>{error}</code></pre>
 </div>
-            """.format(query=grader_answer, error=str(e)).strip(' \t\n\r')
-            return response
+                """.format(query=grader_answer, error=str(e)).strip(' \t\n\r')
+                return response
 
-        if student_rows == grader_rows:
-            results = self._format_results(grader_cols, grader_rows)
+            if student_rows == grader_rows:
+                results = self._format_results(grader_cols, grader_rows)
+
+                response["correct"] = True
+                response["score"] = 1
+                response["msg"] = """
+<div class="correct">
+    <h3>Query results:</h3>
+    <pre><code>{results}</code></pre>
+</div>
+                """.format(results=results).strip(' \t\n\r')
+            else:
+                expected = self._format_results(grader_cols, grader_rows)
+                actual = self._format_results(student_cols, student_rows)
+
+                response["msg"] = """
+<div class="error">
+    <h3>Expected Results</h3>
+    <pre><code class="expected">{expected}</code></pre>
+    <h3>Your Results</h3>
+    <pre><code class="actual">{actual}</code></pre>
+</div>
+                """.format(expected=expected, actual=actual).strip(' \t\n\r')
+
+        else:
+            results = self._format_results(student_cols, student_rows)
 
             response["correct"] = True
-            response["score"] = 1
             response["msg"] = """
-<div class="correct">
-<h3>Query results:</h3>
-<pre><code>{results}</code></pre>
+<div class="sandbox">
+    <h3>Query Results</h3>
+    <pre><code>{results}</code></pre>
 </div>
             """.format(results=results).strip(' \t\n\r')
-        else:
-            expected = self._format_results(grader_cols, grader_rows)
-            actual = self._format_results(student_cols, student_rows)
-
-            response["msg"] = """
-<div class="error">
-<h3>Expected Results</h3>
-<pre><code class="expected">{expected}</code></pre>
-<h3>Your Results</h3>
-<pre><code class="actual">{actual}</code></pre>
-</div>
-            """.format(expected=expected, actual=actual).strip(' \t\n\r')
 
         return response
 
