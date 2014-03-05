@@ -1,11 +1,27 @@
+import csv
+import hashlib
 import logging
 import MySQLdb
 import os
 import sqlite3
 
+from StringIO import StringIO
+
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+
 from .exceptions import InvalidQuery, InvalidGrader
 
 log = logging.getLogger(__file__)
+
+
+def make_hashkey(seed):
+    """
+    Generate a string key by hashing
+    """
+    h = hashlib.md5()
+    h.update(str(seed))
+    return h.hexdigest()
 
 
 class BaseGrader(object):
@@ -18,12 +34,40 @@ class BaseGrader(object):
         raise NotImplementedError
 
 
-class MySQLGrader(BaseGrader):
+class S3UploaderMixin(object):
+    DEFAULT_S3_FILENAME = 'results.csv'
+
+    def __init__(self, s3_bucket, s3_prefix, aws_access_key, aws_secret_key, *args, **kwargs):
+        self.s3_bucket = s3_bucket
+        self.s3_prefix = s3_prefix
+        self.aws_access_key = aws_access_key
+        self.aws_secret_key = aws_secret_key
+
+    def upload(self, contents, path, name):
+        """Upload submission results to S3
+
+        TODO:
+            - Use query_auth=False for `generate_url` if bucket is public
+
+        """
+        s3 = S3Connection(self.aws_access_key, self.aws_secret_key)
+        bucket = s3.get_bucket(self.s3_bucket)
+
+        keyname = "{prefix}/{path}/{name}".format(prefix=self.s3_prefix,
+                                                  path=path, name=name)
+        key = Key(bucket, keyname)
+        key.set_contents_from_string(contents, replace=True)
+        s3_url = key.generate_url(60*60*24)
+
+        return s3_url
+
+
+class MySQLGrader(S3UploaderMixin, BaseGrader):
     """ External grader for SQL statements (MySQL Backend)"""
 
-    def __init__(self, db, host, user, passwd, port=3306, *args, **kwargs):
+    def __init__(self, database, host, user, passwd, port=3306, *args, **kwargs):
         try:
-            self.db = MySQLdb.connect(host, user, passwd, db, port)
+            self.db = MySQLdb.connect(host, user, passwd, database, port)
         except MySQLdb.OperationalError as e:
             raise InvalidGrader(e)
 
@@ -74,7 +118,8 @@ class MySQLGrader(BaseGrader):
                 return response
 
             if student_rows == grader_rows:
-                results = self._format_results(grader_cols, grader_rows)
+
+                html = self.to_html(grader_rows, grader_cols)
 
                 response["correct"] = True
                 response["score"] = 1
@@ -83,10 +128,10 @@ class MySQLGrader(BaseGrader):
     <h3>Query results:</h3>
     <pre><code>{results}</code></pre>
 </div>
-                """.format(results=results).strip(' \t\n\r')
+                """.format(results=html).strip(' \t\n\r')
             else:
-                expected = self._format_results(grader_cols, grader_rows)
-                actual = self._format_results(student_cols, student_rows)
+                expected = self.to_html(grader_rows, grader_cols)
+                actual = self.to_html(student_rows, student_cols)
 
                 response["msg"] = """
 <div class="error">
@@ -98,7 +143,8 @@ class MySQLGrader(BaseGrader):
                 """.format(expected=expected, actual=actual).strip(' \t\n\r')
 
         else:
-            results = self._format_results(student_cols, student_rows)
+
+            html = self.to_html(student_rows, student_cols)
 
             response["correct"] = True
             response["msg"] = """
@@ -106,7 +152,29 @@ class MySQLGrader(BaseGrader):
     <h3>Query Results</h3>
     <pre><code>{results}</code></pre>
 </div>
-            """.format(results=results).strip(' \t\n\r')
+            """.format(results=html).strip(' \t\n\r')
+
+        # Upload correct response results to S3
+        if response["correct"]:
+            csv_results = self.to_csv(student_rows, student_cols)
+
+            s3_path = make_hashkey(submission)
+            s3_name = grader_payload.get('filename', self.DEFAULT_S3_FILENAME)
+            s3_url = self.upload(csv_results, s3_path, s3_name)
+
+            # Append download link
+            response["msg"] += "<p>Download CSV: <a href=\"{s3_url}\">{s3_name}</a></p>".format(s3_url=s3_url, s3_name=s3_name)
+
+        #
+        # Quick and dirty kludge to prevent breaking our response.
+        #
+        # The LMS runs grader messages through lxml.etree.fromstring which
+        # fails with invalid XML, resulting in:
+        #
+        #   "Invalid grader reply. Please contact the course staff."
+        #
+        response["msg"] = response["msg"].replace("&", "&amp;")
+        response["msg"] = "<div class=\"resulst\">" + response["msg"] + "</div>"
 
         return response
 
@@ -122,26 +190,42 @@ class MySQLGrader(BaseGrader):
             raise InvalidQuery("MySQL Error {}: {}".format(code, msg))
         return cols, rows
 
-    def _format_results(self, cols, rows):
-        if len(rows) < 1:
+    def to_csv(self, results, header=None):
+        """Convert grader results to CSV"""
+        sio = StringIO()
+        writer = csv.writer(sio)
+
+        if header:
+            writer.writerow(header)
+
+        for row in results:
+            writer.writerow(row)
+
+        csv_results = sio.getvalue()
+        sio.close()
+        return csv_results
+
+    def to_html(self, results, header=None):
+        if len(results) < 1:
             return ''
 
-        formatted = "<table><thead>"
-        formatted += "<tr><th>{}</th></tr>".format("</th><th>".join(cols))
-        formatted += "</thead><tbody>"
+        html = "<table><thead>"
+        html += "<tr><th>{}</th></tr>".format("</th><th>".join(header))
+        html += "</thead><tbody>"
 
-        for row in rows:
-            formatted += "<tr><td>{}</td></tr>".format(
-                         "</td><td>".join(str(col) for col in row))
-        formatted += "</tbody></table>"
-        return formatted
+        for row in results:
+            html += "<tr><td>{}</td></tr>".format(
+                    "</td><td>".join(str(col) for col in row))
+
+        html += "</tbody></table>"
+        return html
 
 
 class SQLiteGrader(BaseGrader):
     """ External grader for SQL statements (SQLite Backend)"""
 
-    def __init__(self, db, data_dir='', *args, **kwargs):
-        db_path = os.path.join(data_dir, db)
+    def __init__(self, database, data_dir='', *args, **kwargs):
+        db_path = os.path.join(data_dir, database)
         if not os.path.exists(db_path):
             raise InvalidGrader("Database does not exist: {}".format(db_path))
         try:
