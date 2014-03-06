@@ -4,6 +4,7 @@ import logging
 import MySQLdb
 import os
 import sqlite3
+import time
 
 from StringIO import StringIO
 
@@ -106,6 +107,8 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
             Execute both the student and teacher responses, comparing
             results to determine grade.
             """
+            time_start = time.time()
+
             student_response = submission.get('student_response')
             grader_payload = submission.get('grader_payload')
             response = {
@@ -205,6 +208,11 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
             #
             response["msg"] = response["msg"].replace("&", "&amp;")
             response["msg"] = "<div class=\"resulst\">" + response["msg"] + "</div>"
+
+            time_stop = time.time()
+            elapsed_time = (time_stop - time_start)*1000.0
+            log.info("%s - Graded submission \"%s\" in %0.3fms",
+                     type(self).__name__, submission["id"], elapsed_time)
 
             return response
 
