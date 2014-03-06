@@ -13,7 +13,7 @@ class GraderManager(object):
 
     @staticmethod
     def create(submission):
-        grader_type = submission['grader_payload'].get('grader')
+        grader_type = submission['grader_payload'].get('grader', "mysql")
 
         if grader_type not in settings.GRADER_CONFIG:
             log.critical("Improperly configured grader %s", grader_type)
