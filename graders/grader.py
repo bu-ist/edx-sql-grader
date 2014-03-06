@@ -80,14 +80,18 @@ class S3UploaderMixin(object):
             - Use query_auth=False for `generate_url` if bucket is public
 
         """
-        s3 = S3Connection(self.aws_access_key, self.aws_secret_key)
-        bucket = s3.get_bucket(self.s3_bucket)
+        try:
+            s3 = S3Connection(self.aws_access_key, self.aws_secret_key)
+            bucket = s3.create_bucket(self.s3_bucket)
 
-        keyname = "{prefix}/{path}/{name}".format(prefix=self.s3_prefix,
-                                                  path=path, name=name)
-        key = Key(bucket, keyname)
-        key.set_contents_from_string(contents, replace=True)
-        s3_url = key.generate_url(60*60*24)
+            keyname = "{prefix}/{path}/{name}".format(prefix=self.s3_prefix,
+                                                      path=path, name=name)
+            key = Key(bucket, keyname)
+            key.set_contents_from_string(contents, replace=True)
+            s3_url = key.generate_url(60*60*24)
+        except Exception as e:
+            log.error("Error uploading results to S3: %s", e)
+            s3_url = False
 
         return s3_url
 
@@ -178,12 +182,18 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
             if response["correct"]:
                 csv_results = self.to_csv(student_rows, student_cols)
 
-                s3_path = make_hashkey(submission)
+                s3_path = make_hashkey((submission["id"], submission["key"]))
                 s3_name = grader_payload.get('filename', self.DEFAULT_S3_FILENAME)
                 s3_url = self.upload(csv_results, s3_path, s3_name)
 
-                # Append download link
-                response["msg"] += "<p>Download CSV: <a href=\"{s3_url}\">{s3_name}</a></p>".format(s3_url=s3_url, s3_name=s3_name)
+                if s3_url:
+                    download_link = """
+    <p>Download CSV: <a href=\"{s3_url}\">{s3_name}</a></p>
+                    """.format(s3_url=s3_url, s3_name=s3_name).strip(" \t\n\r")
+                else:
+                    download_link = "<p>Could not upload results file. Please contact course staff.</p>"
+
+                response["msg"] += download_link
 
             #
             # Quick and dirty kludge to prevent breaking our response.
