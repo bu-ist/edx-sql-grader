@@ -146,7 +146,7 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
 
                 if student_rows == grader_rows:
 
-                    html = self.to_html(grader_rows, grader_cols)
+                    html = self.to_html(student_rows, student_cols)
 
                     response["correct"] = True
                     response["score"] = 1
