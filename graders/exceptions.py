@@ -5,3 +5,7 @@ class InvalidGrader(Exception):
 
 class InvalidQuery(Exception):
     pass
+
+
+class InvalidGraderResponse(Exception):
+    pass
