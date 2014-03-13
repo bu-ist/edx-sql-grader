@@ -73,7 +73,8 @@ LIMIT 10
               "answer": "SELECT playerID, HR FROM Batting WHERE yearID = 2010 ORDER BY HR DESC LIMIT 10",
               "database": "saber_dev",
               "grader": "mysql",
-              "filename": "players.csv"
+              "filename": "players.csv",
+              "row_limit": 10
             }
            </grader_payload>
        </codeparam>
@@ -91,6 +92,7 @@ The SQL grader requires a specially formatted JSON string to handle submissions 
 - database -- The name of the database to run the queries against.
 - grader -- Grader to use (mysql|sqlite). Optional. Defaults to "mysql".
 - filename -- Filename to use for uploaded results. Optional. Defaults to "results.csv".
+- row_limit -- Limit the number of rows rendered in the HTML results table. Full results can be found in CSV. Optional. Defaults to "None".
 
 ## Resources
 

@@ -34,6 +34,17 @@ class BaseGrader(object):
         """
         raise NotImplementedError
 
+    def sanitize_row_limit(self, limit):
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = None
+
+        if limit < 1:
+            limit = None
+
+        return limit
+
     def to_csv(self, results, header=None):
         """Convert grader results to CSV"""
         sio = StringIO()
@@ -49,20 +60,29 @@ class BaseGrader(object):
         sio.close()
         return csv_results
 
-    def to_html(self, results, header=None):
+    def to_html(self, results, header=None, row_limit=None):
         if len(results) < 1:
             return ''
+
+        row_limit = self.sanitize_row_limit(row_limit)
 
         html = "<table><thead>"
         html += "<tr><th>{}</th></tr>".format("</th><th>".join(header))
         html += "</thead><tbody>"
 
-        for row in results:
+        for idx, row in enumerate(results):
+            if row_limit and idx >= row_limit:
+                break
             html += "<tr><td>{}</td></tr>".format(
                     "</td><td>".join(str(col) for col in row))
 
         html += "</tbody></table>"
+
         return html
+
+    def result_stats(self, displayed, total):
+        return "<p>Showing %d of %s row%s.</p>" % (displayed, total,
+                                                   "s"[total == 1:])
 
 
 class S3UploaderMixin(object):
@@ -111,6 +131,10 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
 
             student_response = submission.get('student_response')
             grader_payload = submission.get('grader_payload')
+
+            row_limit = grader_payload.get("row_limit", None)
+            row_limit = self.sanitize_row_limit(row_limit)
+
             response = {
                 "correct": False,
                 "score": 0,
@@ -119,6 +143,7 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
 
             try:
                 student_cols, student_rows = self.execute_query(student_response)
+                student_rows_found = len(student_rows)
             except InvalidQuery as e:
                 response["msg"] = """
     <div class="error">
@@ -133,6 +158,8 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
             if grader_answer:
                 try:
                     grader_cols, grader_rows = self.execute_query(grader_answer)
+                    grader_rows_found = len(grader_rows)
+
                 except InvalidQuery as e:
                     response["msg"] = """
     <div class="error">
@@ -146,7 +173,12 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
 
                 if student_rows == grader_rows:
 
-                    html = self.to_html(student_rows, student_cols)
+                    html = self.to_html(student_rows, student_cols, row_limit)
+
+                    # Row count stats notice
+                    rows_displayed = row_limit or student_rows_found
+                    student_stats = self.result_stats(rows_displayed,
+                                                      student_rows_found)
 
                     response["correct"] = True
                     response["score"] = 1
@@ -154,32 +186,56 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
     <div class="correct">
         <h3>Query results:</h3>
         <pre><code>{results}</code></pre>
+        {stats}
     </div>
-                    """.format(results=html).strip(' \t\n\r')
+                    """.format(results=html, stats=student_stats) \
+                       .strip(' \t\n\r')
                 else:
-                    expected = self.to_html(grader_rows, grader_cols)
-                    actual = self.to_html(student_rows, student_cols)
+                    expected = self.to_html(grader_rows,
+                                            grader_cols,
+                                            row_limit)
+                    actual = self.to_html(student_rows,
+                                          student_cols,
+                                          row_limit)
+
+                    # Row count stats notice
+                    grader_rows_displayed = row_limit or grader_rows_found
+                    student_rows_displayed = row_limit or student_rows_found
+                    grader_stats = self.result_stats(grader_rows_displayed,
+                                                     grader_rows_found)
+                    student_stats = self.result_stats(student_rows_displayed,
+                                                      student_rows_found)
 
                     response["msg"] = """
     <div class="error">
         <h3>Expected Results</h3>
         <pre><code class="expected">{expected}</code></pre>
+        {grader_stats}
         <h3>Your Results</h3>
         <pre><code class="actual">{actual}</code></pre>
+        {student_stats}
     </div>
-                    """.format(expected=expected, actual=actual).strip(' \t\n\r')
+                    """.format(expected=expected,
+                               actual=actual,
+                               grader_stats=grader_stats,
+                               student_stats=student_stats) \
+                       .strip(' \t\n\r')
 
             else:
 
-                html = self.to_html(student_rows, student_cols)
+                html = self.to_html(student_rows, student_cols, row_limit)
+                student_rows_displayed = row_limit or student_rows_found
+                stats = self.result_stats(student_rows_displayed,
+                                          student_rows_found)
 
                 response["correct"] = True
                 response["msg"] = """
     <div class="sandbox">
         <h3>Query Results</h3>
         <pre><code>{results}</code></pre>
+        {stats}
     </div>
-                """.format(results=html).strip(' \t\n\r')
+                """.format(results=html, stats=stats).strip(' \t\n\r')
 
             # Upload correct response results to S3
             if response["correct"]:
