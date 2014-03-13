@@ -237,8 +237,8 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
     </div>
                 """.format(results=html, stats=stats).strip(' \t\n\r')
 
-            # Upload correct response results to S3
-            if response["correct"]:
+            # Upload student results to S3
+            if student_rows:
                 csv_results = self.to_csv(student_rows, student_cols)
 
                 s3_path = make_hashkey((submission["id"], submission["key"]))
@@ -247,7 +247,7 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
 
                 if s3_url:
                     download_link = """
-    <p>Download CSV: <a href=\"{s3_url}\">{s3_name}</a></p>
+    <p>Download your full results as CSV: <a href=\"{s3_url}\">{s3_name}</a></p>
                     """.format(s3_url=s3_url, s3_name=s3_name).strip(" \t\n\r")
                 else:
                     download_link = "<p>Could not upload results file. Please contact course staff.</p>"
