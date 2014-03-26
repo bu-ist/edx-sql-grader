@@ -11,6 +11,8 @@ from StringIO import StringIO
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 
+from statsd import statsd
+
 from .exceptions import InvalidQuery, InvalidGrader
 
 log = logging.getLogger(__file__)
@@ -122,6 +124,7 @@ class SQLGrader(S3UploaderMixin, BaseGrader):
             if hasattr(self, 'db') and self.db:
                 self.db.close()
 
+        @statsd.timed('grader.SQLGrader.grade')
         def grade(self, submission):
             """
             Execute both the student and teacher responses, comparing
@@ -284,6 +287,7 @@ class MySQLGrader(SQLGrader):
 
         super(MySQLGrader, self).__init__(*args, **kwargs)
 
+    @statsd.timed('grader.MySQLGrader.execute_query')
     def execute_query(self, stmt):
         cursor = self.db.cursor()
         try:

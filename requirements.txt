@@ -4,3 +4,4 @@ requests==2.2.1
 path.py==5.1
 boto==2.25.0
 lxml==3.3.3
+dogstatsd-python==0.3.0

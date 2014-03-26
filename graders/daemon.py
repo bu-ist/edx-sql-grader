@@ -2,6 +2,7 @@ import time
 import logging
 
 from lxml import etree
+from statsd import statsd
 
 import settings
 from xqueue import XQueueClient
@@ -39,6 +40,7 @@ class GraderDaemon():
 
         grader = GraderManager.create(submission)
         if not grader:
+            statsd.increment('grader.handle.fail')
             return fail_reply
 
         reply = grader.grade(submission)
@@ -46,11 +48,13 @@ class GraderDaemon():
         try:
             self.validate_reply(reply)
         except InvalidGraderResponse as e:
+            # TODO: use log.exception instead
             log.critical("Invalid grader reply for submission %d", submission["id"])
             log.critical("Reply: %s", reply)
             log.critical("Reason: %s", e)
             return fail_reply
 
+        statsd.increment('grader.handle.success')
         return reply
 
     def send_reply(self, submission, reply):

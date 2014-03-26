@@ -4,6 +4,8 @@ import requests
 import time
 import urlparse
 
+from statsd import statsd
+
 log = logging.getLogger(__name__)
 
 
@@ -32,6 +34,7 @@ class XQueueClient():
         self.session = requests.session()
         self.login()
 
+    @statsd.timed('xqueue.XQueueClient.login')
     def login(self):
         """ Login to xqueue. """
         login_url = urlparse.urljoin(self.url, self.URLS['login'])
@@ -42,6 +45,7 @@ class XQueueClient():
 
         return self._parse_xreply(response.content)
 
+    @statsd.timed('xqueue.XQueueClient.get_submission')
     def get_submission(self):
         """ Get a single submission from xqueue. """
         time_start = time.time()
@@ -83,6 +87,7 @@ class XQueueClient():
 
         return success, response
 
+    @statsd.timed('xqueue.XQueueClient.put_result')
     def put_result(self, submission, grader_reply):
         """ Post the results from the grader back to xqueue. """
         time_start = time.time()
